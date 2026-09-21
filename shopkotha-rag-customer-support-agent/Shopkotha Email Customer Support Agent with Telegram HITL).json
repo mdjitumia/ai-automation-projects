@@ -1,0 +1,552 @@
+{
+  "name": "Shopkotha Email Customer Support Agent with Telegram HITL)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "3a3482a1-c7ca-4d1a-951d-9dd79ac181e4",
+      "name": "Load KB Manually",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        1088,
+        432
+      ]
+    },
+    {
+      "parameters": {
+        "dataType": "binary",
+        "options": {}
+      },
+      "id": "3adc87cd-2727-4cf8-b1b8-80a47855199e",
+      "name": "Data Loader",
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1,
+      "position": [
+        1824,
+        608
+      ]
+    },
+    {
+      "parameters": {
+        "chunkOverlap": 100,
+        "options": {}
+      },
+      "id": "96180407-3872-4a4d-a17d-1139fe403c66",
+      "name": "Text Splitter",
+      "type": "@n8n/n8n-nodes-langchain.textSplitterRecursiveCharacterTextSplitter",
+      "typeVersion": 1,
+      "position": [
+        2192,
+        736
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "tableName": {
+          "__rl": true,
+          "value": "documents",
+          "mode": "list",
+          "cachedResultName": "documents"
+        },
+        "options": {}
+      },
+      "id": "1cc62e30-a4c4-4cfb-ab8d-caad3909ff3a",
+      "name": "Supabase KB - Insert",
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1,
+      "position": [
+        1760,
+        432
+      ]
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "simple": false,
+        "filters": {
+          "readStatus": "unread"
+        },
+        "options": {}
+      },
+      "id": "65055dfc-93a3-4dbc-9fdb-4722880fd6f9",
+      "name": "Gmail Trigger",
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        1536,
+        880
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1",
+              "name": "customerEmail",
+              "type": "string",
+              "value": "={{ $json.from.value[0].address }}"
+            },
+            {
+              "id": "a2",
+              "name": "subject",
+              "type": "string",
+              "value": "={{ $json.subject }}"
+            },
+            {
+              "id": "a3",
+              "name": "body",
+              "type": "string",
+              "value": "={{ $json.text }}"
+            },
+            {
+              "id": "a4",
+              "name": "messageId",
+              "type": "string",
+              "value": "={{ $json.id }}"
+            },
+            {
+              "id": "a5",
+              "name": "threadId",
+              "type": "string",
+              "value": "={{ $json.threadId }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "0138040b-f3aa-42b3-ac41-a86386c46172",
+      "name": "Extract Email Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1760,
+        880
+      ]
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-embedding-2"
+      },
+      "id": "c6796bb2-4e0d-4339-8363-106f212bc56c",
+      "name": "Embeddings Google Gemini (Retrieve)",
+      "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        2224,
+        1152
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": null,
+          "name": "",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolName": "shopkotha_knowledge_base",
+        "toolDescription": "Search ShopKotha's company knowledge base for policies, FAQs, delivery, returns, refunds, payments, warranty and account information. Use this tool before answering any customer email.",
+        "tableName": {
+          "__rl": true,
+          "value": "documents",
+          "mode": "list"
+        },
+        "options": {
+          "queryName": "match_documents"
+        }
+      },
+      "id": "ef3eb20d-3b6f-4a65-aabc-c224dd0399c4",
+      "name": "Supabase KB - Retrieve Tool",
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1,
+      "position": [
+        2448,
+        1104
+      ]
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.6-flash",
+        "options": {}
+      },
+      "id": "4f86a7b9-bda5-4ef3-80d9-7bf86f414e0e",
+      "name": "Gemini Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        2032,
+        1072
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.subject }}\n\n{{ $json.body }}",
+        "options": {
+          "systemMessage": "You are ShopKotha's AI customer support agent. Always use the shopkotha_knowledge_base tool to look up relevant policy/FAQ information before answering. Reply politely and concisely, in the same language the customer wrote in. If the tool doesn't return a relevant answer, or the request involves a refund above BDT 2,000, or the customer sounds upset, clearly state that you are escalating this to a human support agent instead of guessing."
+        }
+      },
+      "id": "fa690b8d-f326-494c-88e9-47bc71ef02d4",
+      "name": "Customer Support AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        2144,
+        880
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b1",
+              "name": "draftReply",
+              "type": "string",
+              "value": "={{ $json.output }}"
+            },
+            {
+              "id": "b2",
+              "name": "customerEmail",
+              "type": "string",
+              "value": "={{ $('Extract Email Data').item.json.customerEmail }}"
+            },
+            {
+              "id": "b3",
+              "name": "subject",
+              "type": "string",
+              "value": "={{ $('Extract Email Data').item.json.subject }}"
+            },
+            {
+              "id": "b4",
+              "name": "messageId",
+              "type": "string",
+              "value": "={{ $('Extract Email Data').item.json.messageId }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "dcb62d72-0de3-4257-89d6-55d8f49d3f84",
+      "name": "Format Draft Reply",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2640,
+        880
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "sendAndWait",
+        "message": "=📩 From new Customers Email AI Draft Created:\n\nCustomer: {{ $json.customerEmail }}\nSubject: {{ $json.subject }}\n\nDraft Reply:\n{{ $json.draftReply }}\n\nApproved or Not:",
+        "approvalOptions": {
+          "values": {}
+        },
+        "options": {}
+      },
+      "id": "94647b30-2b9f-471f-867f-27f9a56d03e0",
+      "name": "Ask Approval via Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2864,
+        880
+      ],
+      "webhookId": "fd68129d-2c18-407c-9768-75fa627bf43a"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ $json.data.approved }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "4a1f81c7-2f15-4446-88a0-7f3828f2f260",
+      "name": "Approved?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3088,
+        880
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "reply",
+        "messageId": "={{ $('Format Draft Reply').item.json.messageId }}",
+        "emailType": "text",
+        "message": "={{ $('Format Draft Reply').item.json.draftReply }}",
+        "options": {}
+      },
+      "id": "a8a1ced4-a3bf-4421-909c-a6288addca1c",
+      "name": "Send Reply",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        3296,
+        784
+      ],
+      "webhookId": "51869323-b919-4e0f-9395-94f6ea64af2c"
+    },
+    {
+      "parameters": {
+        "text": "=❌ রিপ্লাই বাতিল করা হয়েছে {{ $('Format Draft Reply').item.json.customerEmail }} এর জন্য। ম্যানুয়ালি রিপ্লাই দিন।",
+        "additionalFields": {}
+      },
+      "id": "92aac67c-2b02-4b47-bcf4-f5bdbfacde84",
+      "name": "Notify Rejected",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        3296,
+        992
+      ],
+      "webhookId": "f09dad51-8749-4ec8-85c6-2a2d65fdf7e1"
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1680,
+        640
+      ],
+      "id": "422bf5ca-f5a5-46d1-9203-f39655171710",
+      "name": "Embeddings Google Gemini",
+      "credentials": {
+        "googlePalmApi": {
+          "id": null,
+          "name": "",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "1-rirSXrTOnIANFDs5_hC357wscwpGtGK",
+          "mode": "list",
+          "cachedResultName": "shopkotha_knowledge_base_en.pdf",
+          "cachedResultUrl": "https://drive.google.com/file/d/1-rirSXrTOnIANFDs5_hC357wscwpGtGK/view?usp=drivesdk"
+        },
+        "options": {}
+      },
+      "id": "82839334-5f65-4b2e-8416-8609de486141",
+      "name": "Download Company Knowledge",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1312,
+        432
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Load KB Manually": {
+      "main": [
+        [
+          {
+            "node": "Download Company Knowledge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Supabase KB - Insert",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Text Splitter": {
+      "ai_textSplitter": [
+        [
+          {
+            "node": "Data Loader",
+            "type": "ai_textSplitter",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "Extract Email Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Email Data": {
+      "main": [
+        [
+          {
+            "node": "Customer Support AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Customer Support AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Google Gemini (Retrieve)": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Supabase KB - Retrieve Tool",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase KB - Retrieve Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "Customer Support AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Customer Support AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Format Draft Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Draft Reply": {
+      "main": [
+        [
+          {
+            "node": "Ask Approval via Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ask Approval via Telegram": {
+      "main": [
+        [
+          {
+            "node": "Approved?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Approved?": {
+      "main": [
+        [
+          {
+            "node": "Send Reply",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Notify Rejected",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Google Gemini": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Supabase KB - Insert",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Company Knowledge": {
+      "main": [
+        [
+          {
+            "node": "Supabase KB - Insert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "1653f36e-74fd-445c-a9dd-42cbd739ad79",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "3500eba41c4b4096ab7921a77a06dcde938ba74463e1ee29d365e862a9edbb7a"
+  },
+  "nodeGroups": [],
+  "id": "jYoDFovH4bYDzWSV",
+  "tags": []
+}
