@@ -1,0 +1,198 @@
+{
+  "name": "Competitor Price Watchdog - Daily Summary (Corrected)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 10 * * *"
+            }
+          ]
+        }
+      },
+      "id": "7d04f253-9bee-43ea-b0a0-47bd763575cf",
+      "name": "Daily 10:00 Summary",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        32,
+        -96
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/1-CHw91SFl9Z3b0vmuZNV3ybXNj6V3FRPfUcU9WJiH1s/edit?gid=0#gid=0",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "",
+          "mode": "list",
+          "cachedResultName": "",
+          "cachedResultUrl": ""
+        }
+      },
+      "id": "054c1d75-55da-416e-b8d5-586669bdf2ad",
+      "name": "Read Products For Summary",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        288,
+        -96
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.all().map(i => i.json);\nconst today = new Date().toISOString().slice(0,10);\nconst changed = rows.filter(r => String(r.Last_Checked ?? '').slice(0,10) === today && Number.isFinite(Number(r.Price_Change)) && Number(r.Price_Change) !== 0);\nconst lines = rows.map(r => {\n  const delta = Number(r.Price_Change);\n  const d = Number.isFinite(delta) ? `${delta > 0 ? '+' : ''}${delta}` : 'No change/first check';\n  return `- ${r.Product_Name} | ${r.Competitor} | Current: ${r.Current_Price || 'N/A'} | Change: ${d}`;\n}).join('\\n');\nconst prompt = `Create a concise daily competitor price-watch summary for ${today}.\nTracked products: ${rows.length}\nProducts with price changes today: ${changed.length}\nCurrent rows:\n${lines || 'No products were returned.'}\nMention tracked count, price-change count, changed products and direction where applicable. If none changed, say so clearly. Keep under 140 words. Do not invent facts. Plain text for Telegram.`;\nreturn [{json:{summaryDate:today,trackedCount:rows.length,changedCount:changed.length,summaryPrompt:prompt}}];"
+      },
+      "id": "20ce638d-d7b7-45dd-8feb-1910e291581a",
+      "name": "Build Summary Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        544,
+        -96
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ contents: [{ parts: [{ text: $json.summaryPrompt }] }], generationConfig: { maxOutputTokens: 260 } }) }}",
+        "options": {}
+      },
+      "id": "d807b19c-5fe2-442e-aeba-565c7554f88e",
+      "name": "Gemini - Daily Summary",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        816,
+        -96
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "5Pqe6VOTlCkTmZkW",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const meta = $('Build Summary Prompt').item.json;\n\n// Extract Gemini generated text\nconst text = ($json?.candidates?.[0]?.content?.parts ?? [])\n  .map(part => part.text || '')\n  .join('')\n  .trim();\n\n// Fallback message if Gemini returns no text\nconst fallback = `Date: ${meta.summaryDate}\nTracked products: ${meta.trackedCount}\nPrice changes today: ${meta.changedCount}\n${\n  meta.changedCount === 0\n    ? 'No price changes were detected today.'\n    : 'See Google Sheets for the current product prices and changes.'\n}`;\n\n// Return one n8n item\nreturn {\n  json: {\n    telegramMessage:\n`📊 Competitor Price Watchdog — Daily Summary\n\n${text || fallback}`\n  }\n};"
+      },
+      "id": "22eb7665-23f2-4c71-b650-1d0a2080713d",
+      "name": "Build Daily Telegram Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1072,
+        -96
+      ]
+    },
+    {
+      "parameters": {
+        "text": "={{$json.telegramMessage}}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "c4f2f612-85a5-4f9f-8088-0ea7c6502e39",
+      "name": "Telegram Daily Summary",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1344,
+        -96
+      ],
+      "webhookId": "720144e2-fd35-43bd-9270-7a0c8af001ad"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Daily 10:00 Summary": {
+      "main": [
+        [
+          {
+            "node": "Read Products For Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Products For Summary": {
+      "main": [
+        [
+          {
+            "node": "Build Summary Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Summary Prompt": {
+      "main": [
+        [
+          {
+            "node": "Gemini - Daily Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini - Daily Summary": {
+      "main": [
+        [
+          {
+            "node": "Build Daily Telegram Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Daily Telegram Message": {
+      "main": [
+        [
+          {
+            "node": "Telegram Daily Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "aeca5953-13a9-4644-b820-7d18d7ff6e7b",
+  "meta": {
+    "instanceId": "3500eba41c4b4096ab7921a77a06dcde938ba74463e1ee29d365e862a9edbb7a"
+  },
+  "nodeGroups": [],
+  "id": "jYoDFovH4bYDzWSV",
+  "tags": []
+}
