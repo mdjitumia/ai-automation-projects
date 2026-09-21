@@ -11,4 +11,4 @@ An n8n Cloud-based AI automation system for automated competitor price monitorin
 
 **n8n Cloud • Apify • Google Sheets • Gemini • Telegram • JavaScript**
 
-See [`documentation.md`](documentation.md) for the architecture, workflow logic, validation, and setup  notes.
+See [`documentation.md`](documentation.md) for the architecture, workflow logic, validation, and setup notes.
