@@ -1,0 +1,334 @@
+{
+  "name": "Part 2: Youtube Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "4205f1a4-7a24-4796-bbe9-5574a7d35689",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        7504,
+        3232
+      ],
+      "id": "59994448-024e-4a94-aef4-88524649e361",
+      "name": "Webhook",
+      "webhookId": "4205f1a4-7a24-4796-bbe9-5574a7d35689"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://queue.fal.run/fal-ai/ffmpeg-api/merge-audio-video",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Key c81af15b-0e79-48a1-a62d-f83f6c4f00a4:c32df8bc1e9e14b2ec18d8224397f2d3"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "video_url",
+              "value": "={{ $('HTTP Request').item.json.data.task_result.videos[0].url }}"
+            },
+            {
+              "name": "audio_url",
+              "value": "https://drive.google.com/file/d/11_lDRdX6wZJaUV1BXFC6Ek7gGBrVz01n/view?usp=sharing"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        8208,
+        3232
+      ],
+      "id": "d072384f-5a33-4dce-b979-87c435ac669b",
+      "name": "HTTP Request2"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.status_url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Key c81af15b-0e79-48a1-a62d-f83f6c4f00a4:c32df8bc1e9e14b2ec18d8224397f2d3"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        8384,
+        3232
+      ],
+      "id": "cb14accb-6ec1-4f64-bae6-578624e84ae6",
+      "name": "HTTP Request3"
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "1qhlForLBDwqpbsKIagtgKcZ2AodpCIHk",
+          "mode": "list",
+          "cachedResultName": "audio",
+          "cachedResultUrl": "https://drive.google.com/file/d/1qhlForLBDwqpbsKIagtgKcZ2AodpCIHk/view?usp=drivesdk"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        8032,
+        3232
+      ],
+      "id": "69780569-4a6d-4530-8634-e708add9db48",
+      "name": "Download file"
+    },
+    {
+      "parameters": {
+        "resource": "video",
+        "operation": "upload",
+        "title": "first video",
+        "regionCode": "BD",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.youTube",
+      "typeVersion": 1,
+      "position": [
+        8912,
+        3232
+      ],
+      "id": "9347ea21-169c-483c-9118-a686bce9fa9e",
+      "name": "Upload a video"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.video.url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {}
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        8752,
+        3232
+      ],
+      "id": "194ff806-9f2e-4221-aa39-c60033baca7f",
+      "name": "HTTP Request5"
+    },
+    {
+      "parameters": {
+        "url": "https://api-singapore.klingai.com/v1/videos/image2video/897713422840758329",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer api-key-kling-7nl653dugJsU4P3zSuzfEixcQQFR7_l4dSeh0HgPMt4"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        7680,
+        3232
+      ],
+      "id": "c73218a7-8100-4cd6-a2bb-4586b41d5875",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "9d4f0e75-ddf0-4975-afe9-7582c9801cf4",
+              "leftValue": "={{ $json.data.task_status }}",
+              "rightValue": "succeed",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        7856,
+        3232
+      ],
+      "id": "ae3f45dc-e37b-455b-8f49-628f0d4bfdb1",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.response_url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Key c81af15b-0e79-48a1-a62d-f83f6c4f00a4:c32df8bc1e9e14b2ec18d8224397f2d3"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        8592,
+        3232
+      ],
+      "id": "a56c3e96-6040-4dc3-b917-998f751dc367",
+      "name": "HTTP Request4"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request2": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request3": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download file": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request5": {
+      "main": [
+        [
+          {
+            "node": "Upload a video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Download file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request4": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "b36da0cf-8a10-4a45-a25d-14584e682130",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "7854b060b54946a45ac3be7d0710937c9ec61e1d9d73a6685acabd14bb1abe63"
+  },
+  "nodeGroups": [],
+  "id": "f04hjafuldKmOZzO",
+  "tags": []
+}

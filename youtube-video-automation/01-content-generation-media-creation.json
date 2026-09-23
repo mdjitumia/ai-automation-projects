@@ -1,0 +1,513 @@
+{
+  "name": "Part 1: Youtube Automation",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        5872,
+        2912
+      ],
+      "id": "ec3930b5-cd27-44b8-af6d-e35b634d050a",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "grok-3-mini",
+          "mode": "list",
+          "cachedResultName": "GROK-3-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You create video concepts based on the user query. All video will be a face or avatar video.\n\nYou output the following in JSON:\n\n{\n  \"Script\": {\n    \"Intro\": \"40-70 characters\",\n    \"Base\": \"280-350 characters\",\n    \"CTA\": \"55 characters\"\n  },\n  \"Title\": \"30-50 character\" (Short and engaging), Keep it curiosity-driven (e.g., \"I Tried This for 7 Days... Crazy Results!\"),\n  \"Description\": \"50-150 characters (Shorter, with key hashtags), hook. Add context, CTA, and hashtags.\"\n}"
+            },
+            {
+              "content": "<user-query>\ngenerate people faces\n/<user-query>"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {
+          "textFormat": {
+            "textOptions": {
+              "type": "json_object"
+            }
+          }
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        6016,
+        2912
+      ],
+      "id": "bcbc7365-0a9e-41a3-8746-32c08a3fa83c",
+      "name": "Ideator"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "8ad9d2fe-aef2-471c-8304-a7e5c700eabc",
+              "name": "text",
+              "value": "={{ $json.output[0].content[0].text.Script.Intro }}\n{{ $json.output[0].content[0].text.Script.Base }}\n{{ $json.output[0].content[0].text.Script.CTA }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        6304,
+        2736
+      ],
+      "id": "61e0aa4c-b0c4-4c2b-b1ec-b44ce918fcb8",
+      "name": "Script"
+    },
+    {
+      "parameters": {
+        "jsCode": "const inputJson = $input.first().json;\n\n// Debug: log the actual input structure so you can check it in the console\nconsole.log(JSON.stringify(inputJson));\n\n// Try common field paths — adjust based on what you see in console\nconst script =\n  inputJson.Script ||\n  inputJson.text ||\n  inputJson.output ||\n  '';\n\nif (!script) {\n  throw new Error('Script field is empty — check console log for actual input structure: ' + JSON.stringify(inputJson));\n}\n\nconst WORDS_PER_SECOND = 2.5; // rough estimate, tune later\nconst CHUNK_DURATION = 6;\nconst WORDS_PER_CHUNK = Math.round(WORDS_PER_SECOND * CHUNK_DURATION);\n\nconst words = script.replace(/\\n/g, ' ').trim().split(/\\s+/);\n\nconst chunks = [];\nlet chunkIndex = 0;\n\nfor (let i = 0; i < words.length; i += WORDS_PER_CHUNK) {\n  const chunkWords = words.slice(i, i + WORDS_PER_CHUNK);\n  chunks.push({\n    index: chunkIndex,\n    text: chunkWords.join(' '),\n    start: chunkIndex * CHUNK_DURATION,\n    end: (chunkIndex + 1) * CHUNK_DURATION\n  });\n  chunkIndex++;\n}\n\nreturn chunks.map(chunk => ({ json: chunk }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6448,
+        2736
+      ],
+      "id": "cb6a0496-fafa-435c-b19e-362602b9875c",
+      "name": "Splitting into 6 seconds"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "o3-mini",
+          "mode": "list",
+          "cachedResultName": "O3-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are an image prompt generator agent for video production. Your role is to create starting frames for a short video by transforming script segments into visually descriptive image prompts.\n\nYou will receive the full script for context, and one specific segment that this image is for.\n\nOutput in JSON:\n{\n  \"prompt\": \"image prompt text\"\n}\n\nImportant instructions:\n- Keep prompts extremely simple and concrete — describe one clear scene, subject, and setting\n- Avoid anything an AI image/video model would struggle to render: no text, no readable signs, no complex hand gestures, no multiple distinct faces interacting\n- AI models are good at: single subjects, landscapes, objects, simple environments, lighting effects\n- AI models are bad at: text, hands, multiple people interacting, fine detail, specific logos\n- Match the mood/topic of the segment, not the literal words"
+            },
+            {
+              "content": "=Full Script:  {{ $('Script').item.json.text }}\n\nCurrent Segment: {{ $json.text }}"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        6592,
+        2736
+      ],
+      "id": "46d449bb-511e-404f-ac9e-92fbd433d5d6",
+      "name": "Message a model"
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-image-1-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-IMAGE-1-MINI"
+        },
+        "prompt": "={{ $json.output[0].content[0].text }}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        6864,
+        2736
+      ],
+      "id": "2543b0f6-5e37-4baf-b4c8-8f516e277f10",
+      "name": "Generate an image"
+    },
+    {
+      "parameters": {
+        "inputDataFieldName": "={{ $json.fileName }}",
+        "name": "={{ $json.fileName }}",
+        "driveId": {
+          "__rl": true,
+          "value": "My Drive",
+          "mode": "list",
+          "cachedResultName": "My Drive",
+          "cachedResultUrl": "https://drive.google.com/drive/my-drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "15BkA2d9v5MUV_Kje2h2hw60pvZ3dqhTs",
+          "mode": "list",
+          "cachedResultName": "video 1\n",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/15BkA2d9v5MUV_Kje2h2hw60pvZ3dqhTs"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        7008,
+        2736
+      ],
+      "id": "38e48c6d-0a95-4bf6-9eaf-475482afab77",
+      "name": "Upload file"
+    },
+    {
+      "parameters": {
+        "resource": "folder",
+        "operation": "share",
+        "folderNoRootId": {
+          "__rl": true,
+          "value": "1ttJ8Gw8IjZS9xsdMqGFVApZn9umpd06z",
+          "mode": "list",
+          "cachedResultName": "Video 1",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/1ttJ8Gw8IjZS9xsdMqGFVApZn9umpd06z"
+        },
+        "permissionsUi": {
+          "permissionsValues": {
+            "role": "reader",
+            "type": "anyone"
+          }
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        7168,
+        2736
+      ],
+      "id": "1e7de81b-52bf-4d20-b0be-4fecf68050ea",
+      "name": "Share folder"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api-singapore.klingai.com/v1/videos/image2video",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer api-key-kling-7nl653dugJsU4P3zSuzfEixcQQFR7_l4dSeh0HgPMt4"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model_name",
+              "value": "kling-v1"
+            },
+            {
+              "name": "image",
+              "value": "=https://p2-kling.klingai.com/kcdn/cdn-kcdn112452/kling-qa-test/multi-2.png"
+            },
+            {
+              "name": "image_tail",
+              "value": "=https://p2-kling.klingai.com/kcdn/cdn-kcdn112452/kling-qa-test/multi-1.png"
+            },
+            {
+              "name": "prompt",
+              "value": "Camera zooms out"
+            },
+            {
+              "name": "negative_prompt"
+            },
+            {
+              "name": "duration",
+              "value": "5"
+            },
+            {
+              "name": "mode",
+              "value": "std"
+            },
+            {
+              "name": "sound",
+              "value": "off"
+            },
+            {
+              "name": "callback_url",
+              "value": "https://mallik1234567.app.n8n.cloud/webhook-test/4205f1a4-7a24-4796-bbe9-5574a7d35689"
+            }
+          ]
+        },
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        7328,
+        2736
+      ],
+      "id": "c1898951-e7e5-4775-82c0-7498da50524d",
+      "name": "HTTP Request",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.elevenlabs.io/v1/text-to-speech/ohvvU75FpBEB8fdaLOMh",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "xi-api-key",
+              "value": "sk_909a7dee10baf34f8e3f8b4b14ddc5ceb00b2a6eea93151b"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ text: $json.Script, model_id: \"eleven_multilingual_v2\" }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        6480,
+        3024
+      ],
+      "id": "9096782a-a508-4c6c-bf40-8a305a5acf05",
+      "name": "Audio Voice Generator"
+    },
+    {
+      "parameters": {
+        "name": "audio",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "16PzRy8xEG_fWAf1odemhInTBqJqD2dKl",
+          "mode": "list",
+          "cachedResultName": "audio",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/16PzRy8xEG_fWAf1odemhInTBqJqD2dKl"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        6672,
+        3024
+      ],
+      "id": "c80d3fcd-959a-48c5-9df6-336aa7dea1f2",
+      "name": "Upload file1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d5586716-6f64-46a9-8284-e09c4ea5428e",
+              "name": "Script",
+              "value": "={{ $json.output[0].content[0].text.Script.Intro }}\n{{ $json.output[0].content[0].text.Script.Base }}\n{{ $json.output[0].content[0].text.Script.CTA }}\n",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        6320,
+        3024
+      ],
+      "id": "4596bbc0-b0be-425b-8ea8-8450bb32a8ab",
+      "name": "Script1"
+    },
+    {
+      "parameters": {
+        "resource": "folder",
+        "operation": "share",
+        "folderNoRootId": {
+          "__rl": true,
+          "value": "16PzRy8xEG_fWAf1odemhInTBqJqD2dKl",
+          "mode": "list",
+          "cachedResultName": "audio",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/16PzRy8xEG_fWAf1odemhInTBqJqD2dKl"
+        },
+        "permissionsUi": {
+          "permissionsValues": {
+            "role": "reader",
+            "type": "anyone"
+          }
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        6896,
+        3024
+      ],
+      "id": "13ea6a6b-8b33-4163-ab17-90823a79298d",
+      "name": "Share folder1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Ideator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ideator": {
+      "main": [
+        [
+          {
+            "node": "Script",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Script1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Script": {
+      "main": [
+        [
+          {
+            "node": "Splitting into 6 seconds",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Splitting into 6 seconds": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Generate an image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate an image": {
+      "main": [
+        [
+          {
+            "node": "Upload file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload file": {
+      "main": [
+        [
+          {
+            "node": "Share folder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Share folder": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Audio Voice Generator": {
+      "main": [
+        [
+          {
+            "node": "Upload file1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload file1": {
+      "main": [
+        [
+          {
+            "node": "Share folder1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Script1": {
+      "main": [
+        [
+          {
+            "node": "Audio Voice Generator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "8eb438a2-0c4b-4f30-9fba-83ec85c789cd",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "7854b060b54946a45ac3be7d0710937c9ec61e1d9d73a6685acabd14bb1abe63"
+  },
+  "nodeGroups": [],
+  "id": "f04hjafuldKmOZzO",
+  "tags": []
+}
