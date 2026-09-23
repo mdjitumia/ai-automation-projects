@@ -1,0 +1,284 @@
+{
+  "name": "MCP server_Travel Assistant",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "c7224250-d132-43b3-a964-037a9d57c412"
+      },
+      "type": "@n8n/n8n-nodes-langchain.mcpTrigger",
+      "typeVersion": 2,
+      "position": [
+        784,
+        352
+      ],
+      "id": "41541c7a-008f-48cf-8328-3a91c17aacac",
+      "name": "MCP Server Trigger",
+      "webhookId": "c7224250-d132-43b3-a964-037a9d57c412"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Get current weather information for a destination using latitude and longitude.",
+        "url": "https://api.open-meteo.com/v1/forecast",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('parameters0_Name', ``, 'string') }}",
+              "value": "21.4272"
+            },
+            {
+              "name": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('parameters1_Name', ``, 'string') }}",
+              "value": "92.0058"
+            },
+            {
+              "name": "current_weather",
+              "value": "true"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.4,
+      "position": [
+        688,
+        624
+      ],
+      "id": "3b927103-d9e7-4d83-814e-157318781536",
+      "name": "Get Weather"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Find hotels in a destination using OpenStreetMap data",
+        "url": "https://nominatim.openstreetmap.org/search",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "hotel in Cox's Bazar"
+            },
+            {
+              "name": "format",
+              "value": "jsonv2"
+            },
+            {
+              "name": "limit",
+              "value": "5"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "n8n-travel-assistant"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.4,
+      "position": [
+        1072,
+        640
+      ],
+      "id": "f37698c7-6818-4f7a-a6bd-c8ee6a779233",
+      "name": "Get Hotels"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Find restaurants in a destination",
+        "url": "https://nominatim.openstreetmap.org/search",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "restaurant in Cox's Bazar"
+            },
+            {
+              "name": "format",
+              "value": "jsonv2"
+            },
+            {
+              "name": "limit",
+              "value": "5"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "n8n-travel-assistant"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.4,
+      "position": [
+        1280,
+        640
+      ],
+      "id": "2390d97e-8d0f-4b03-a7ab-0a5252a481d6",
+      "name": "Get Restaurants"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Find tourist attractions in a destination",
+        "url": "https://nominatim.openstreetmap.org/search",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "Cox's Bazar Sea Beach"
+            },
+            {
+              "name": "format",
+              "value": "jsonv2"
+            },
+            {
+              "name": "limit",
+              "value": "10"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "n8n-travel-assistant"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.4,
+      "position": [
+        480,
+        624
+      ],
+      "id": "17cec0ff-dcd6-4243-989e-da403ff89acd",
+      "name": "Get Attractions"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Get latest currency exchange rates",
+        "url": "https://open.er-api.com/v6/latest/USD",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.4,
+      "position": [
+        880,
+        640
+      ],
+      "id": "7cd03d8c-731a-4694-b2a1-3d000f078cf4",
+      "name": "Get Currency"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Get Weather": {
+      "ai_tool": [
+        [
+          {
+            "node": "MCP Server Trigger",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Hotels": {
+      "ai_tool": [
+        [
+          {
+            "node": "MCP Server Trigger",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Restaurants": {
+      "ai_tool": [
+        [
+          {
+            "node": "MCP Server Trigger",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Attractions": {
+      "ai_tool": [
+        [
+          {
+            "node": "MCP Server Trigger",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Currency": {
+      "ai_tool": [
+        [
+          {
+            "node": "MCP Server Trigger",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "aa326c84-583c-485e-b2e4-a3816d03b22d",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "7854b060b54946a45ac3be7d0710937c9ec61e1d9d73a6685acabd14bb1abe63"
+  },
+  "nodeGroups": [],
+  "id": "f04hjafuldKmOZzO",
+  "tags": []
+}

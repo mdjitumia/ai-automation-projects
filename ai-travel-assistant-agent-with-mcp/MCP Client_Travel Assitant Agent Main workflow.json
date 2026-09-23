@@ -1,0 +1,156 @@
+{
+  "name": "MCP Client_Travel Assitant Agent Main workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        0
+      ],
+      "id": "be7c4eac-ca73-47ab-8e36-cdb9952d0cfc",
+      "name": "When chat message received",
+      "webhookId": "c7861fba-4919-4ada-a606-992087ea5f4c"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are an AI Travel Assistant that uses MCP tools and user memory to provide accurate, personalized travel recommendations.\n\nIMPORTANT RULES:\n\nAlways use available MCP tools before answering.\n\nFor every travel query:\n\n1. Check current weather\n2. Find hotels\n3. Find restaurants\n4. Find tourist attractions\n5. Check currency exchange rate if the destination is international\n\nUSER PREFERENCES (MEMORY):\n\nBudget: {{$json.budget}}\nHotel Type: {{$json.hotelType}}\nTransport: {{$json.transport}}\nDiet: {{$json.diet}}\nActivity: {{$json.activity}}\n\nPERSONALIZATION RULES:\n\n- If Budget = Budget, prioritize low-cost options.\n- If Budget = Mid-range, prioritize balanced options.\n- If Budget = Luxury, prioritize premium options.\n\n- If Hotel Type is specified, prioritize hotels matching that preference.\n\n- If Transport is specified, recommend that transportation method whenever possible.\n\n- If Diet = Halal, recommend only halal-friendly restaurants.\n- If Diet = Vegetarian, recommend vegetarian-friendly restaurants.\n\n- If Activity = Adventure, prioritize adventure activities.\n- If Activity = Relaxation, prioritize relaxing activities.\n- If Activity = Sightseeing, prioritize sightseeing attractions.\n\nYou must explicitly mention how the recommendations were personalized using the user's stored preferences.\n\nRESPONSE FORMAT:\n\n# Personalized Travel Plan\n\n## Personalization Applied\n- Budget Preference:\n- Hotel Preference:\n- Transportation Preference:\n- Dietary Preference:\n- Activity Preference:\n\n## Destination Overview\nProvide a short overview of the destination.\n\n## Weather Summary\nSummarize current weather conditions.\n\n## Hotel Recommendations\nProvide recommended hotels that match user preferences.\n\n## Restaurant Recommendations\nProvide restaurants that match dietary preferences.\n\n## Tourist Attractions\nList recommended attractions, prioritizing preferred activities.\n\n## Transportation Recommendation\nRecommend transportation based on user preference.\n\n## Budget Estimate\nProvide estimated costs for:\n- Accommodation\n- Food\n- Transportation\n- Activities\n\n## Packing Suggestions\nRecommend what to pack based on weather and activities.\n\n## Personalized Recommendation\nProvide a final recommendation that clearly explains why the destination is suitable for this user based on their stored preferences.\n\nKeep the response practical, clear, friendly, and personalized.",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        448,
+        0
+      ],
+      "id": "dcd32c0d-62bf-4ec6-9bac-4d00c28a5355",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "endpointUrl": "https://jiskotech.app.n8n.cloud/mcp/c7224250-d132-43b3-a964-037a9d57c412",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.mcpClientTool",
+      "typeVersion": 1.4,
+      "position": [
+        592,
+        224
+      ],
+      "id": "25988790-3071-4af7-9f5d-eee2938ffbc5",
+      "name": "MCP Client"
+    },
+    {
+      "parameters": {
+        "model": "llama-3.3-70b-versatile",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        464,
+        224
+      ],
+      "id": "277ab85a-b89a-445a-9c03-e003e1f05d94",
+      "name": "Groq Chat Model"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1_I70Biwc90t5tZuvtxz385948fL102eqSXDK1qKPxt0",
+          "mode": "list",
+          "cachedResultName": "Travel_Memory",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1_I70Biwc90t5tZuvtxz385948fL102eqSXDK1qKPxt0/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1_I70Biwc90t5tZuvtxz385948fL102eqSXDK1qKPxt0/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "userId",
+              "lookupValue": "joni"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        224,
+        0
+      ],
+      "id": "4ae8bb22-ce91-4640-86d0-6feaca851740",
+      "name": "Get row(s) in sheet"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MCP Client": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "9357ffaa-a914-4358-a11f-a3649bcacc54",
+  "meta": {
+    "instanceId": "7854b060b54946a45ac3be7d0710937c9ec61e1d9d73a6685acabd14bb1abe63"
+  },
+  "nodeGroups": [],
+  "id": "f04hjafuldKmOZzO",
+  "tags": []
+}
