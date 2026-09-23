@@ -1,0 +1,233 @@
+{
+  "name": "Meta Messenger Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "multipleMethods": true,
+        "path": "5920a29c-80f3-439e-9fd2-50bb537b2101",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -448,
+        -192
+      ],
+      "id": "04c0be4f-f6c3-4e76-86cb-3e5beb6dce56",
+      "name": "Webhook",
+      "webhookId": "5920a29c-80f3-439e-9fd2-50bb537b2101"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "03edf3a1-e8c0-460c-9397-897189519db5",
+              "leftValue": "={{ $json.query['hub.mode'] }}",
+              "rightValue": "subscribe",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "62f5f944-3ec2-4335-98d0-4b03b161eb8b",
+              "leftValue": "={{ $json.query['hub.verify_token'] }}",
+              "rightValue": "jitu-bhai",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -160,
+        -208
+      ],
+      "id": "803e9388-f07d-4047-b913-22fef7d1facc",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.query['hub.challenge'] }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        176,
+        -224
+      ],
+      "id": "8bb628c3-13fb-4611-872d-5001181491d7",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a helpful customer support Agent. Reply to the User Message:  {{ $json.body.entry[0].messaging[0].message.text }}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -96,
+        -80
+      ],
+      "id": "c9dc59fe-7a47-47bd-8e58-1acbecd0fff3",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": "llama-3.3-70b-versatile",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        -192,
+        96
+      ],
+      "id": "1a4d68fc-8dfa-4559-8f81-40e20b63960b",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "JpMwClrVDkJbDHWl",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.body.entry[0].messaging[0].sender.id }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        -48,
+        96
+      ],
+      "id": "8b5a313c-2be5-44f1-a52a-83d81db105f2",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v26.0/{{ $('Webhook').item.json.body.entry[0].messaging[0].recipient.id }}/messages",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "access_token",
+              "value": "EAAMu5VfhSBYBSKJJWzonUj9R9nd1DYE1seZBvioZBZCFYEZCu6WKxqhf9cFLjaGOzIPKDHofZBGGhPBypMxa3ujPxgIE2UMYSV5hyAZBv7J1i39vwAVdvn5coO0b0bQmXgP27ZCOQ6n2ZA095wcj7TXCZAZASAd91gbusiJUcPtIZB9ESKDmkIQrcFUpx9l8edC6c0KMl0OsFZCEqWA1HCksfuFkZCwZDZD"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"recipient\": {\n    \"id\": \"{{ $('Webhook').item.json.body.entry[0].messaging[0].sender.id }}\"\n  },\n  \"messaging_type\": \"RESPONSE\",\n  \"message\": {\n    \"text\": \"{{ $json.output }}\"\n  }\n} ",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        272,
+        -80
+      ],
+      "id": "7eba9eb8-c50e-46eb-a1b5-37fec6aab4c3",
+      "name": "HTTP Request"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "4bf25fb7-da91-494a-8f0b-d9e8838dcea9",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "0cb8ca23a1195c6d9cc1c538f41197ac848a67c68dedc862d8746e4cceec3012"
+  },
+  "nodeGroups": [],
+  "id": "bLiatHa8U5cZuKhf",
+  "tags": []
+}
