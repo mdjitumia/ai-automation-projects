@@ -53,7 +53,3 @@ Each automation system is organized in its own directory with:
 
 ---
 
-## Security
-
-API keys, credentials, tokens, `.env` files, and other secrets are never
-stored in this repository.
